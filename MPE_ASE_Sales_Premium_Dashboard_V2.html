@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MPE & ASE Sales Intelligence Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#f6f1ea; --card:#fffdf9; --ink:#2e261f; --muted:#81766c;
+  --brown:#6b4934; --caramel:#c4864e; --olive:#6d7650; --orange:#d97835;
+  --purple:#9b87b7; --purple2:#cfc2df; --line:#e9dfd5; --white:#fff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 10% 0%,#fff8ef 0,#f6f1ea 38%,#f2ede6 100%);
+font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--ink)}
+button,select,input{font:inherit}
+.wrap{max-width:1500px;margin:auto;padding:28px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:25px}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{width:48px;height:48px;border-radius:16px;background:linear-gradient(135deg,var(--brown),var(--caramel));color:white;
+display:grid;place-items:center;font-weight:900;box-shadow:0 10px 25px #6b493426}
+h1{font-size:30px;line-height:1.1;margin:0;letter-spacing:-.7px}
+.sub{color:var(--muted);font-size:13px;margin-top:6px}
+.actions{display:flex;gap:10px;align-items:center}
+.btn{border:0;border-radius:13px;padding:12px 16px;font-weight:750;cursor:pointer;transition:.2s;display:flex;gap:8px;align-items:center}
+.btn.primary{background:var(--brown);color:#fff;box-shadow:0 9px 20px #6b49342b}
+.btn.primary:hover{transform:translateY(-1px);background:#563b2b}
+.btn.ghost{background:#fffaf4;color:var(--brown);border:1px solid var(--line)}
+#fileInput{display:none}
+.tabs{display:flex;gap:7px;background:#eee5dc;padding:5px;border-radius:14px;width:max-content;margin-bottom:18px}
+.tab{border:0;background:transparent;padding:9px 17px;border-radius:10px;color:#75685d;font-weight:800;cursor:pointer}
+.tab.active{background:#fffdf9;color:var(--brown);box-shadow:0 3px 12px #6b493410}
+.filters{display:grid;grid-template-columns:repeat(5,minmax(130px,1fr));gap:10px;margin-bottom:18px}
+.filter{background:#fffaf4;border:1px solid var(--line);border-radius:13px;padding:9px 11px}
+.filter label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.9px;color:#988b80;font-weight:800;margin-bottom:4px}
+.filter select{width:100%;border:0;background:transparent;color:var(--ink);font-weight:700;outline:0}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.card{background:rgba(255,253,249,.92);border:1px solid #eadfd5;border-radius:20px;box-shadow:0 12px 35px #5a463313;padding:18px}
+.kpi{min-height:126px;position:relative;overflow:hidden}
+.kpi:after{content:"";position:absolute;width:90px;height:90px;border-radius:50%;right:-28px;top:-28px;background:var(--accent,#c4864e);opacity:.10}
+.kpi .label{color:var(--muted);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.8px}
+.kpi .value{font-size:29px;font-weight:900;letter-spacing:-1px;margin-top:10px}
+.kpi .hint{font-size:11px;color:var(--muted);margin-top:5px}
+.section{margin-top:16px}
+.chartgrid{display:grid;grid-template-columns:1.6fr 1fr;gap:16px}
+.chartgrid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.cardhead{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.cardtitle{font-size:15px;font-weight:900}
+.cardnote{font-size:11px;color:var(--muted);margin-top:3px}
+.chartbox{height:330px}
+.smallchart{height:290px}
+.insights{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.insight{padding:15px;border-radius:16px;background:#fbf5ed;border:1px solid #eee1d4}
+.insight .tag{font-size:10px;text-transform:uppercase;font-weight:900;letter-spacing:1px;color:var(--olive)}
+.insight strong{display:block;font-size:14px;margin-top:7px;line-height:1.4}
+.insight span{font-size:11px;color:var(--muted);line-height:1.45;display:block;margin-top:4px}
+.tablewrap{overflow:auto;max-height:440px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{position:sticky;top:0;background:#fffaf4;color:#786b60;font-size:10px;text-transform:uppercase;letter-spacing:.6px}
+.badge{padding:5px 8px;border-radius:999px;font-size:10px;font-weight:900;background:#f1e7dc;color:var(--brown)}
+.footer{padding:22px 3px;color:#9b8e83;font-size:11px;text-align:center}
+.empty{padding:50px;text-align:center;color:var(--muted)}
+@media(max-width:1050px){.grid{grid-template-columns:repeat(2,1fr)}.chartgrid,.chartgrid2{grid-template-columns:1fr}.filters{grid-template-columns:repeat(3,1fr)}.insights{grid-template-columns:1fr}}
+@media(max-width:650px){.wrap{padding:16px}.top{align-items:flex-start;flex-direction:column}.actions{width:100%}.actions .btn{flex:1;justify-content:center}.filters{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}h1{font-size:25px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="logo">SI</div>
+      <div><h1>Sales Intelligence</h1><div class="sub">MPE & ASE territory performance • live, filterable executive view</div></div>
+    </div>
+    <div class="actions">
+      <button class="btn ghost" onclick="resetFilters()">↺ Reset</button>
+      <button class="btn primary" onclick="document.getElementById('fileInput').click()">＋ Import / Preview</button>
+      <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" onchange="importDataset(event)">
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" id="tabMPE" onclick="setMode('MPE')">MPE View</button>
+    <button class="tab" id="tabASE" onclick="setMode('ASE')">ASE View</button>
+  </div>
+
+  <div style="display:flex;justify-content:flex-end;margin:-6px 0 10px"><span id="sourceBadge" class="badge">Loading…</span></div>
+  <section class="filters">
+    <div class="filter"><label>Region</label><select id="fRegion" onchange="render()"></select></div>
+    <div class="filter"><label>Area</label><select id="fArea" onchange="render()"></select></div>
+    <div class="filter"><label>Territory</label><select id="fTerritory" onchange="render()"></select></div>
+    <div class="filter"><label>Team / Division</label><select id="fTeam" onchange="render()"></select></div>
+    <div class="filter"><label>Employee</label><select id="fEmployee" onchange="render()"></select></div>
+  </section>
+
+  <main id="app"></main>
+  <div class="footer">Version 2 • Live source: ./data.xlsx • Replace data.xlsx on GitHub to refresh the dashboard</div>
+</div>
+
+<script>
+const initialData = {"territory-wise-MPE-sales-achiev": {"columns": ["Region", "Area", "Territory Code", "Territory Employee", "Team", "Target Value", "Sold Value", "Transit Value", "Total Value", "Ach (%)", "Variance (+/-)", "Return Perc", "Return Value"], "rows": [{"Region": "K1", "Area": "K10", "Territory Code": "K11", "Territory Employee": "Hassan, Mr. Md. Hasibul", "Team": "Fortuna", "Target Value": 747825.09, "Sold Value": 369118.35, "Transit Value": 210139.11, "Total Value": 579257.46, "Ach (%)": 77.46, "Variance (+/-)": -168567.63, "Return Perc": 1.91, "Return Value": 11070.38}, {"Region": "K1", "Area": "K10", "Territory Code": "K11", "Territory Employee": "Roy, Mr. Suman", "Team": "Optima", "Target Value": 755003.49, "Sold Value": 278686.55, "Transit Value": 248829.27, "Total Value": 527515.82, "Ach (%)": 69.87, "Variance (+/-)": -227487.67, "Return Perc": 1.44, "Return Value": 7607.09}, {"Region": "K1", "Area": "K10", "Territory Code": "K11", "Territory Employee": "Haque, Mr. Ekramul", "Team": "Centina", "Target Value": 664724.91, "Sold Value": 331701.51, "Transit Value": 195174.34, "Total Value": 526875.85, "Ach (%)": 79.26, "Variance (+/-)": -137849.06, "Return Perc": 2.15, "Return Value": 11324.33}, {"Region": "K1", "Area": "K10", "Territory Code": "K11", "Territory Employee": "Munna, Mr. A. K", "Team": "Origina", "Target Value": 745422.79, "Sold Value": 266748.25, "Transit Value": 193602.99, "Total Value": 460351.24, "Ach (%)": 61.76, "Variance (+/-)": -285071.55, "Return Perc": 3.27, "Return Value": 15062.23}, {"Region": "K1", "Area": "K10", "Territory Code": "K12", "Territory Employee": "Hushain, Mr. Md. Rakib", "Team": "Centina", "Target Value": 750633.4, "Sold Value": 400355.0, "Transit Value": 233740.7, "Total Value": 634095.7, "Ach (%)": 84.47, "Variance (+/-)": -116537.7, "Return Perc": 2.85, "Return Value": 18075.33}, {"Region": "K1", "Area": "K10", "Territory Code": "K12", "Territory Employee": "Shaikh, Mr. Alamin", "Team": "Origina", "Target Value": 804591.82, "Sold Value": 255907.57, "Transit Value": 195516.24, "Total Value": 451423.81, "Ach (%)": 56.11, "Variance (+/-)": -353168.01, "Return Perc": 1.75, "Return Value": 7877.43}, {"Region": "K1", "Area": "K10", "Territory Code": "K12", "Territory Employee": "Rahman, Mr. Md. Ataur", "Team": "Fortuna", "Target Value": 726832.71, "Sold Value": 231254.74, "Transit Value": 163107.21, "Total Value": 394361.95, "Ach (%)": 54.26, "Variance (+/-)": -332470.76, "Return Perc": 0.6, "Return Value": 2362.32}, {"Region": "K1", "Area": "K10", "Territory Code": "K12", "Territory Employee": "Maruf, Mr. Md. Alkuch", "Team": "Optima", "Target Value": 741741.03, "Sold Value": 299913.81, "Transit Value": 205539.73, "Total Value": 505453.54, "Ach (%)": 68.14, "Variance (+/-)": -236287.49, "Return Perc": 1.76, "Return Value": 8904.48}, {"Region": "K1", "Area": "K20", "Territory Code": "K21", "Territory Employee": "Rahman, Mr. Md. Sajanur", "Team": "Optima", "Target Value": 859984.15, "Sold Value": 351273.15, "Transit Value": 222698.25, "Total Value": 573971.4, "Ach (%)": 66.74, "Variance (+/-)": -286012.75, "Return Perc": 2.08, "Return Value": 11957.56}, {"Region": "K1", "Area": "K20", "Territory Code": "K21", "Territory Employee": "Haque, Mr. Jahurul", "Team": "Origina", "Target Value": 903047.31, "Sold Value": 302076.27, "Transit Value": 178489.16, "Total Value": 480565.43, "Ach (%)": 53.22, "Variance (+/-)": -422481.88, "Return Perc": 2.42, "Return Value": 11612.29}, {"Region": "K1", "Area": "K20", "Territory Code": "K21", "Territory Employee": "Zakaria, Mr. Sheikh Abdullah Al", "Team": "Centina", "Target Value": 775221.33, "Sold Value": 331430.78, "Transit Value": 190841.59, "Total Value": 522272.37, "Ach (%)": 67.37, "Variance (+/-)": -252948.96, "Return Perc": 1.26, "Return Value": 6606.72}, {"Region": "K1", "Area": "K20", "Territory Code": "K21", "Territory Employee": "Pal, Mr. Basudab", "Team": "Fortuna", "Target Value": 808635.23, "Sold Value": 346132.03, "Transit Value": 233840.26, "Total Value": 579972.29, "Ach (%)": 71.72, "Variance (+/-)": -228662.94, "Return Perc": 1.44, "Return Value": 8334.11}, {"Region": "K1", "Area": "K30", "Territory Code": "K31", "Territory Employee": "Raihan, Mr. Md. Abu", "Team": "Centina", "Target Value": 773239.07, "Sold Value": 264129.55, "Transit Value": 271550.86, "Total Value": 535680.41, "Ach (%)": 69.28, "Variance (+/-)": -237558.66, "Return Perc": 1.38, "Return Value": 7413.97}, {"Region": "K1", "Area": "K30", "Territory Code": "K31", "Territory Employee": "Alam, Mr. Jahangir", "Team": "Optima", "Target Value": 788718.67, "Sold Value": 193872.56, "Transit Value": 239925.68, "Total Value": 433798.24, "Ach (%)": 55.0, "Variance (+/-)": -354920.43, "Return Perc": 2.23, "Return Value": 9659.7}, {"Region": "K1", "Area": "K30", "Territory Code": "K31", "Territory Employee": "Rahman, Mr. Md. Anisur", "Team": "Fortuna", "Target Value": 757031.95, "Sold Value": 164735.31, "Transit Value": 152999.53, "Total Value": 317734.84, "Ach (%)": 41.97, "Variance (+/-)": -439297.11, "Return Perc": 1.48, "Return Value": 4711.74}, {"Region": "K1", "Area": "K30", "Territory Code": "K31", "Territory Employee": "Roy, Mr. Sourov", "Team": "Origina", "Target Value": 792097.85, "Sold Value": 213480.55, "Transit Value": 215470.39, "Total Value": 428950.94, "Ach (%)": 54.15, "Variance (+/-)": -363146.91, "Return Perc": 3.02, "Return Value": 12960.73}, {"Region": "K1", "Area": "K30", "Territory Code": "K32", "Territory Employee": "Ahmed, Mr. Sakin", "Team": "Optima", "Target Value": 1027095.81, "Sold Value": 478718.1, "Transit Value": 121523.7, "Total Value": 600241.8, "Ach (%)": 58.44, "Variance (+/-)": -426854.01, "Return Perc": 6.03, "Return Value": 36182.45}, {"Region": "K1", "Area": "K30", "Territory Code": "K32", "Territory Employee": "Rahman, Mr. Habibur", "Team": "Centina", "Target Value": 863850.75, "Sold Value": 456448.72, "Transit Value": 136216.11, "Total Value": 592664.83, "Ach (%)": 68.61, "Variance (+/-)": -271185.92, "Return Perc": 4.5, "Return Value": 26686.59}, {"Region": "K1", "Area": "K30", "Territory Code": "K32", "Territory Employee": "Sikder, Mr. Abu Taleb", "Team": "Origina", "Target Value": 1246040.32, "Sold Value": 483877.17, "Transit Value": 209914.7, "Total Value": 693791.87, "Ach (%)": 55.68, "Variance (+/-)": -552248.45, "Return Perc": 5.63, "Return Value": 39028.23}, {"Region": "K1", "Area": "K40", "Territory Code": "K41", "Territory Employee": "Hasan, Mr. Sakib Al", "Team": "Origina", "Target Value": 875303.02, "Sold Value": 529357.1, "Transit Value": 120367.33, "Total Value": 649724.43, "Ach (%)": 74.23, "Variance (+/-)": -225578.59, "Return Perc": 1.67, "Return Value": 10844.71}, {"Region": "K1", "Area": "K40", "Territory Code": "K41", "Territory Employee": "Hridoy, Mr. Md. Russel Khan", "Team": "Optima", "Target Value": 859661.34, "Sold Value": 529929.76, "Transit Value": 142318.99, "Total Value": 672248.75, "Ach (%)": 78.2, "Variance (+/-)": -187412.59, "Return Perc": 2.86, "Return Value": 19200.14}, {"Region": "K1", "Area": "K40", "Territory Code": "K41", "Territory Employee": "Bhattacharya, Mr. Krittibus", "Team": "Centina", "Target Value": 867257.37, "Sold Value": 578236.98, "Transit Value": 136077.99, "Total Value": 714314.97, "Ach (%)": 82.36, "Variance (+/-)": -152942.4, "Return Perc": 1.92, "Return Value": 13731.23}, {"Region": "K1", "Area": "K40", "Territory Code": "K41", "Territory Employee": "Parvez, Mr. Rasel", "Team": "Fortuna", "Target Value": 778641.12, "Sold Value": 453645.69, "Transit Value": 124151.12, "Total Value": 577796.81, "Ach (%)": 74.21, "Variance (+/-)": -200844.31, "Return Perc": 3.08, "Return Value": 17775.87}, {"Region": "K1", "Area": "K40", "Territory Code": "K42", "Territory Employee": "Sarkar, Mr. Ashis", "Team": "Origina", "Target Value": 979868.9, "Sold Value": 468104.13, "Transit Value": 235328.78, "Total Value": 703432.91, "Ach (%)": 71.79, "Variance (+/-)": -276435.99, "Return Perc": 1.52, "Return Value": 10707.01}, {"Region": "K1", "Area": "K40", "Territory Code": "K42", "Territory Employee": "Biswas, Mr. Raj Kumar", "Team": "Optima", "Target Value": 1011213.65, "Sold Value": 354199.13, "Transit Value": 143261.81, "Total Value": 497460.94, "Ach (%)": 49.19, "Variance (+/-)": -513752.71, "Return Perc": 4.38, "Return Value": 21782.86}, {"Region": "K1", "Area": "K40", "Territory Code": "K42", "Territory Employee": "Islam, Mr. Md. Solayman", "Team": "Centina", "Target Value": 905279.17, "Sold Value": 460414.18, "Transit Value": 143946.01, "Total Value": 604360.19, "Ach (%)": 66.76, "Variance (+/-)": -300918.98, "Return Perc": 2.28, "Return Value": 13764.54}, {"Region": "K1", "Area": "K40", "Territory Code": "K42", "Territory Employee": "Sarkar, Mr. Partho Nath", "Team": "Fortuna", "Target Value": 948604.6, "Sold Value": 404699.72, "Transit Value": 106894.49, "Total Value": 511594.21, "Ach (%)": 53.93, "Variance (+/-)": -437010.39, "Return Perc": 2.01, "Return Value": 10296.28}, {"Region": "K1", "Area": "K50", "Territory Code": "K51", "Territory Employee": "Islam, Mr. Md. Kazi Shafiqul", "Team": "Fortuna", "Target Value": 824118.89, "Sold Value": 402372.04, "Transit Value": 125205.6, "Total Value": 527577.64, "Ach (%)": 64.02, "Variance (+/-)": -296541.25, "Return Perc": 2.99, "Return Value": 15774.99}, {"Region": "K1", "Area": "K50", "Territory Code": "K51", "Territory Employee": "Ali, Mr. Md. Suruj", "Team": "Centina", "Target Value": 877850.52, "Sold Value": 519227.34, "Transit Value": 163662.36, "Total Value": 682889.7, "Ach (%)": 77.79, "Variance (+/-)": -194960.82, "Return Perc": 2.2, "Return Value": 15040.71}, {"Region": "K1", "Area": "K50", "Territory Code": "K51", "Territory Employee": "Amin, Mr. Md. Ruhul", "Team": "Origina", "Target Value": 990466.72, "Sold Value": 515638.93, "Transit Value": 150914.4, "Total Value": 666553.33, "Ach (%)": 67.3, "Variance (+/-)": -323913.39, "Return Perc": 4.02, "Return Value": 26786.98}, {"Region": "K1", "Area": "K50", "Territory Code": "K51", "Territory Employee": "Ahmed, Mr. Md. Bulbul", "Team": "Optima", "Target Value": 892245.98, "Sold Value": 449869.35, "Transit Value": 141261.0, "Total Value": 591130.35, "Ach (%)": 66.25, "Variance (+/-)": -301115.63, "Return Perc": 3.64, "Return Value": 21538.17}, {"Region": "K1", "Area": "K50", "Territory Code": "K52", "Territory Employee": "Islam, Mr. Md. Ashraful", "Team": "Origina", "Target Value": 1265248.83, "Sold Value": 522036.66, "Transit Value": 390159.99, "Total Value": 912196.65, "Ach (%)": 72.1, "Variance (+/-)": -353052.18, "Return Perc": 3.69, "Return Value": 33639.94}, {"Region": "K1", "Area": "K50", "Territory Code": "K52", "Territory Employee": "Shake, Mr. Md. Remon", "Team": "Centina", "Target Value": 1062018.28, "Sold Value": 468043.28, "Transit Value": 130159.4, "Total Value": 598202.68, "Ach (%)": 56.33, "Variance (+/-)": -463815.6, "Return Perc": 3.14, "Return Value": 18758.22}, {"Region": "K1", "Area": "K50", "Territory Code": "K52", "Territory Employee": "Debnath, Mr. Pritom Kumar", "Team": "Optima", "Target Value": 1027050.57, "Sold Value": 518339.38, "Transit Value": 158967.74, "Total Value": 677307.12, "Ach (%)": 65.95, "Variance (+/-)": -349743.45, "Return Perc": 3.0, "Return Value": 20332.66}, {"Region": "K1", "Area": "K60", "Territory Code": "K61", "Territory Employee": "Sharma, Mr. Sumon Kumar", "Team": "Origina", "Target Value": 1150571.33, "Sold Value": 587119.95, "Transit Value": 296940.56, "Total Value": 884060.51, "Ach (%)": 76.84, "Variance (+/-)": -266510.82, "Return Perc": 2.27, "Return Value": 20059.23}, {"Region": "K1", "Area": "K60", "Territory Code": "K61", "Territory Employee": "Hasan, Mr. Md. Mehedi", "Team": "Centina", "Target Value": 1374896.6, "Sold Value": 547667.42, "Transit Value": 296259.75, "Total Value": 843927.17, "Ach (%)": 61.38, "Variance (+/-)": -530969.43, "Return Perc": 3.13, "Return Value": 26417.29}, {"Region": "K1", "Area": "K60", "Territory Code": "K61", "Territory Employee": "Islam, Mr. Aminul", "Team": "Fortuna", "Target Value": 904558.95, "Sold Value": 410206.33, "Transit Value": 226465.12, "Total Value": 636671.45, "Ach (%)": 70.38, "Variance (+/-)": -267887.5, "Return Perc": 2.31, "Return Value": 14689.33}, {"Region": "K1", "Area": "K60", "Territory Code": "K61", "Territory Employee": "Shil, Mr. Arjun Kumar", "Team": "Optima", "Target Value": 1106940.64, "Sold Value": 390393.66, "Transit Value": 233544.85, "Total Value": 623938.51, "Ach (%)": 56.37, "Variance (+/-)": -483002.13, "Return Perc": 2.67, "Return Value": 16655.34}, {"Region": "K1", "Area": "K70", "Territory Code": "K71", "Territory Employee": "Rahman, Mr. Md. Hasibur", "Team": "Fortuna", "Target Value": 887573.45, "Sold Value": 361425.67, "Transit Value": 116279.76, "Total Value": 477705.43, "Ach (%)": 53.82, "Variance (+/-)": -409868.02, "Return Perc": 0.99, "Return Value": 4729.2}, {"Region": "K1", "Area": "K70", "Territory Code": "K71", "Territory Employee": "Rahman, Mr. Md. Monzur", "Team": "Origina", "Target Value": 1236217.2, "Sold Value": 476080.39, "Transit Value": 199313.49, "Total Value": 675393.88, "Ach (%)": 54.63, "Variance (+/-)": -560823.32, "Return Perc": 2.31, "Return Value": 15587.42}, {"Region": "K1", "Area": "K70", "Territory Code": "K71", "Territory Employee": "Hossain, Mr. Md. Sakawat", "Team": "Optima", "Target Value": 912015.93, "Sold Value": 422563.1, "Transit Value": 160366.21, "Total Value": 582929.31, "Ach (%)": 63.92, "Variance (+/-)": -329086.62, "Return Perc": 2.19, "Return Value": 12794.76}, {"Region": "K1", "Area": "K70", "Territory Code": "K71", "Territory Employee": "Rahman, Mr. Md. Moshiur", "Team": "Centina", "Target Value": 1043081.21, "Sold Value": 551027.4, "Transit Value": 174549.39, "Total Value": 725576.79, "Ach (%)": 69.56, "Variance (+/-)": -317504.42, "Return Perc": 1.91, "Return Value": 13864.81}, {"Region": "K1", "Area": "K70", "Territory Code": "K72", "Territory Employee": "Gain, Mr. Amit Kumar", "Team": "Origina", "Target Value": 1113507.9, "Sold Value": 537802.23, "Transit Value": 126137.01, "Total Value": 663939.24, "Ach (%)": 59.63, "Variance (+/-)": -449568.66, "Return Perc": 2.5, "Return Value": 16611.34}, {"Region": "K1", "Area": "K70", "Territory Code": "K72", "Territory Employee": "Hossain, Mr. Rubel", "Team": "Centina", "Target Value": 918319.81, "Sold Value": 561949.61, "Transit Value": 130886.45, "Total Value": 692836.06, "Ach (%)": 75.45, "Variance (+/-)": -225483.75, "Return Perc": 1.51, "Return Value": 10461.02}, {"Region": "K1", "Area": "K70", "Territory Code": "K72", "Territory Employee": "Islam, Mr. Md. Rashedul", "Team": "Optima", "Target Value": 1066780.42, "Sold Value": 610076.78, "Transit Value": 132603.84, "Total Value": 742680.62, "Ach (%)": 69.62, "Variance (+/-)": -324099.8, "Return Perc": 1.83, "Return Value": 13574.44}, {"Region": "K1", "Area": "K80", "Territory Code": "K81", "Territory Employee": "Mahmud, Mr. Abdullah Al", "Team": "Origina", "Target Value": 1336954.46, "Sold Value": 377596.28, "Transit Value": 329406.4, "Total Value": 707002.68, "Ach (%)": 52.88, "Variance (+/-)": -629951.78, "Return Perc": 3.0, "Return Value": 21219.04}, {"Region": "K1", "Area": "K80", "Territory Code": "K81", "Territory Employee": "Kabir, Mr. Md. Khairul", "Team": "Optima", "Target Value": 1022376.56, "Sold Value": 317312.97, "Transit Value": 199405.16, "Total Value": 516718.13, "Ach (%)": 50.54, "Variance (+/-)": -505658.43, "Return Perc": 2.79, "Return Value": 14423.14}, {"Region": "K1", "Area": "K80", "Territory Code": "K81", "Territory Employee": "Rasheduzzaman, Mr. Md.", "Team": "Centina", "Target Value": 972020.19, "Sold Value": 384688.47, "Transit Value": 212787.13, "Total Value": 597475.6, "Ach (%)": 61.47, "Variance (+/-)": -374544.59, "Return Perc": 2.6, "Return Value": 15517.15}, {"Region": "K1", "Area": "K80", "Territory Code": "K82", "Territory Employee": "Siddique, Mr. Mohammad Abu Bakar", "Team": "Centina", "Target Value": 963790.11, "Sold Value": 357688.47, "Transit Value": 242426.92, "Total Value": 600115.39, "Ach (%)": 62.27, "Variance (+/-)": -363674.72, "Return Perc": 3.9, "Return Value": 23390.95}, {"Region": "K1", "Area": "K80", "Territory Code": "K82", "Territory Employee": "Zaman, Mr. Sheik Almuz", "Team": "Optima", "Target Value": 954958.72, "Sold Value": 481227.06, "Transit Value": 171408.16, "Total Value": 652635.22, "Ach (%)": 68.34, "Variance (+/-)": -302323.5, "Return Perc": 3.09, "Return Value": 20134.16}, {"Region": "K1", "Area": "K80", "Territory Code": "K82", "Territory Employee": "Islam, Mr. Md. Shafiqul", "Team": "Origina", "Target Value": 1154949.94, "Sold Value": 470304.12, "Transit Value": 235326.55, "Total Value": 705630.67, "Ach (%)": 61.1, "Variance (+/-)": -449319.27, "Return Perc": 5.59, "Return Value": 39425.37}]}, "territory-wise-ASE-sales-achiev": {"columns": ["Region", "Area", "Ase Employee", "Division", "Target Value", "Sold Value", "Transit Value", "Total Value", "Ach (%)", "Variance (+/-)", "Return Value", "Return Perc"], "rows": [{"Region": "K1", "Area": "K10", "Ase Employee": "Rahman, Mr. Khan Moshiur", "Division": "ACD", "Target Value": 5936775.24, "Sold Value": 2433685.8, "Transit Value": 1645649.59, "Total Value": 4079335.39, "Ach (%)": 68.71, "Variance (+/-)": -1857439.85, "Return Value": 82283.59, "Return Perc": 2.02}, {"Region": "K1", "Area": "K20", "Ase Employee": "Khandoker, Mr. Md. Anis", "Division": "ACD", "Target Value": 3346888.02, "Sold Value": 1330912.23, "Transit Value": 825869.26, "Total Value": 2156781.49, "Ach (%)": 64.44, "Variance (+/-)": -1190106.53, "Return Value": 38510.68, "Return Perc": 1.79}, {"Region": "K1", "Area": "K30", "Ase Employee": "Biswas, Mr. Nirmalendu", "Division": "ACD", "Target Value": 6248074.42, "Sold Value": 2255261.96, "Transit Value": 1347600.97, "Total Value": 3602862.93, "Ach (%)": 57.66, "Variance (+/-)": -2645211.49, "Return Value": 136643.41, "Return Perc": 3.79}, {"Region": "K1", "Area": "K40", "Ase Employee": "Murad, Mr. Md. Wahid", "Division": "ACD", "Target Value": 7225829.17, "Sold Value": 3778586.69, "Transit Value": 1152346.51, "Total Value": 4930933.2, "Ach (%)": 68.24, "Variance (+/-)": -2294895.97, "Return Value": 118102.64, "Return Perc": 2.4}, {"Region": "K1", "Area": "K50", "Ase Employee": "Fakir, Mr. Md. Emon", "Division": "ACD", "Target Value": 6938999.79, "Sold Value": 3395526.98, "Transit Value": 1260330.49, "Total Value": 4655857.47, "Ach (%)": 67.1, "Variance (+/-)": -2283142.32, "Return Value": 151871.67, "Return Perc": 3.26}, {"Region": "K1", "Area": "K60", "Ase Employee": "Roy, Mr. Bikash Chandra", "Division": "ACD", "Target Value": 4536967.52, "Sold Value": 1935387.36, "Transit Value": 1053210.28, "Total Value": 2988597.64, "Ach (%)": 65.87, "Variance (+/-)": -1548369.88, "Return Value": 77821.19, "Return Perc": 2.6}, {"Region": "K1", "Area": "K70", "Ase Employee": "Hossen, Mr. Md. Jakir", "Division": "ACD", "Target Value": 7177495.92, "Sold Value": 3520925.18, "Transit Value": 1140176.5, "Total Value": 4661101.68, "Ach (%)": 64.94, "Variance (+/-)": -2516394.24, "Return Value": 87622.99, "Return Perc": 1.88}, {"Region": "K1", "Area": "K80", "Ase Employee": "Shahrawardi, Mr. Md.", "Division": "ACD", "Target Value": 6405049.98, "Sold Value": 2388817.37, "Transit Value": 1390760.32, "Total Value": 3779577.69, "Ach (%)": 59.01, "Variance (+/-)": -2625472.29, "Return Value": 134109.81, "Return Perc": 3.55}]}};
+let dataStore = initialData;
+let mode = "MPE";
+let charts = {};
+
+
+/* ===== Version 2: live GitHub Pages Excel loader =====
+   Keep these two files in the same GitHub Pages folder:
+     index.html
+     data.xlsx
+
+   Every time data.xlsx is replaced/committed, this dashboard
+   fetches the newest workbook automatically.
+*/
+const DATA_FILE = "./data.xlsx";
+let dataSource = "Loading…";
+
+async function loadOnlineWorkbook(){
+  try{
+    // Timestamp prevents the browser from reusing yesterday's workbook.
+    const url = DATA_FILE + "?v=" + Date.now();
+    const response = await fetch(url, {cache:"no-store"});
+    if(!response.ok) throw new Error("HTTP " + response.status);
+
+    const buffer = await response.arrayBuffer();
+    const wb = XLSX.read(buffer, {type:"array", cellDates:true});
+    const obj = {};
+
+    wb.SheetNames.forEach(sheetName=>{
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {defval:null});
+      obj[sheetName] = {
+        columns: rows.length ? Object.keys(rows[0]) : [],
+        rows: rows
+      };
+    });
+
+    if(!Object.keys(obj).length) throw new Error("Workbook has no sheets");
+
+    dataStore = obj;
+    dataSource = "☁️ Live: data.xlsx";
+    updateSourceBadge();
+    render();
+    return true;
+  }catch(error){
+    console.warn("Could not load ./data.xlsx. Using embedded fallback.", error);
+    dataStore = initialData;
+    dataSource = "⚠️ Fallback data";
+    updateSourceBadge();
+    render();
+    return false;
+  }
+}
+
+function updateSourceBadge(){
+  const el = document.getElementById("sourceBadge");
+  if(el) el.textContent = dataSource;
+}
+
+const colors = ["#6b4934","#c4864e","#6d7650","#d97835","#9b87b7","#b8a27b","#7d6551","#a9b38a"];
+
+function destroyCharts(){Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={}}
+
+function sheetsForMode(){
+  const keys=Object.keys(dataStore);
+  const key = keys.find(k => mode==="MPE" ? /mpe/i.test(k) : /ase/i.test(k)) || keys[0];
+  return dataStore[key] || {columns:[],rows:[]};
+}
+function norm(s){return String(s||"").toLowerCase().replace(/[^a-z0-9]/g,"")}
+function findCol(cols, patterns){
+  for(const p of patterns){const x=cols.find(c=>norm(c).includes(p));if(x)return x}
+  return null
+}
+function num(v){return typeof v==="number"?v:(v==null||v===""?0:Number(String(v).replace(/,/g,""))||0)}
+function money(v){return "৳"+Math.round(v).toLocaleString("en-BD")}
+function pct(v){return (Number(v)||0).toFixed(1)+"%"}
+function unique(rows,col){return [...new Set(rows.map(r=>r[col]).filter(v=>v!==null&&v!==undefined&&v!==""))].sort((a,b)=>String(a).localeCompare(String(b),undefined,{numeric:true}))}
+function selectVal(id){return document.getElementById(id).value}
+function populateFilters(rows, cols){
+  const map={
+    fRegion:findCol(cols,["region"]),
+    fArea:findCol(cols,["area"]),
+    fTerritory:findCol(cols,["territorycode","territory"]),
+    fTeam: mode==="MPE"?findCol(cols,["team"]):findCol(cols,["division"]),
+    fEmployee: mode==="MPE"?findCol(cols,["territoryemployee","employee"]):findCol(cols,["aseemployee","employee"])
+  };
+  for(const [id,col] of Object.entries(map)){
+    const el=document.getElementById(id), old=el.value;
+    const vals=col?unique(rows,col):[];
+    el.innerHTML='<option value="">All</option>'+vals.map(v=>`<option value="${String(v).replaceAll('"','&quot;')}">${String(v)}</option>`).join("");
+    if(vals.includes(old)) el.value=old;
+  }
+}
+function filteredRows(){
+  const d=sheetsForMode(), rows=d.rows, cols=d.columns;
+  const pairs=[
+    ["fRegion",findCol(cols,["region"])],
+    ["fArea",findCol(cols,["area"])],
+    ["fTerritory",findCol(cols,["territorycode","territory"])],
+    ["fTeam",mode==="MPE"?findCol(cols,["team"]):findCol(cols,["division"])],
+    ["fEmployee",mode==="MPE"?findCol(cols,["territoryemployee","employee"]):findCol(cols,["aseemployee","employee"])]
+  ];
+  return rows.filter(r=>pairs.every(([id,c])=>!c||!selectVal(id)||String(r[c])===selectVal(id)));
+}
+function setMode(m){
+  mode=m;
+  document.getElementById("tabMPE").classList.toggle("active",m==="MPE");
+  document.getElementById("tabASE").classList.toggle("active",m==="ASE");
+  resetFilters(false); render();
+}
+function resetFilters(doRender=true){
+  ["fRegion","fArea","fTerritory","fTeam","fEmployee"].forEach(id=>document.getElementById(id).value="");
+  if(doRender) render();
+}
+function sum(rows,col){return col?rows.reduce((a,r)=>a+num(r[col]),0):0}
+function avg(rows,col){return col?rows.length?sum(rows,col)/rows.length:0:0}
+
+function render(){
+  destroyCharts();
+  const d=sheetsForMode(), cols=d.columns, rows=d.rows;
+  populateFilters(rows,cols);
+  const fr=filteredRows();
+  const target=findCol(cols,["targetvalue","target"]);
+  const sold=findCol(cols,["soldvalue","sold"]);
+  const transit=findCol(cols,["transitvalue","transit"]);
+  const total=findCol(cols,["totalvalue","total"]);
+  const ach=findCol(cols,["ach"]);
+  const variance=findCol(cols,["variance"]);
+  const retVal=findCol(cols,["returnvalue"]);
+  const retPct=findCol(cols,["returnperc","returnpercentage"]);
+  const territory=findCol(cols,["territorycode","territory"]);
+  const employee=mode==="MPE"?findCol(cols,["territoryemployee","employee"]):findCol(cols,["aseemployee","employee"]);
+  const groupCol=findCol(cols,["territorycode","territory","area"]);
+
+  const T=sum(fr,target), S=sum(fr,sold), TR=sum(fr,transit), TV=sum(fr,total);
+  const A=T?TV/T*100:avg(fr,ach);
+  const V=sum(fr,variance), RV=sum(fr,retVal), RP=S?RV/S*100:avg(fr,retPct);
+  const n=fr.length;
+  const achieved=fr.filter(r=>num(r[ach])>=100).length;
+  const gap=Math.max(T-TV,0);
+
+  document.getElementById("app").innerHTML=`
+    <section class="grid">
+      <div class="card kpi" style="--accent:#6b4934"><div class="label">Target Value</div><div class="value">${money(T)}</div><div class="hint">${n.toLocaleString()} ${mode} records in view</div></div>
+      <div class="card kpi" style="--accent:#c4864e"><div class="label">Sold Value</div><div class="value">${money(S)}</div><div class="hint">Direct sold contribution</div></div>
+      <div class="card kpi" style="--accent:#6d7650"><div class="label">Total Value</div><div class="value">${money(TV)}</div><div class="hint">Sold + transit</div></div>
+      <div class="card kpi" style="--accent:#9b87b7"><div class="label">Achievement</div><div class="value">${pct(A)}</div><div class="hint">${achieved} records at/above 100% by reported Ach %</div></div>
+      <div class="card kpi" style="--accent:#d97835"><div class="label">Transit Value</div><div class="value">${money(TR)}</div><div class="hint">${T?pct(TR/T*100):"0%"} of target</div></div>
+      <div class="card kpi" style="--accent:#6b4934"><div class="label">Gap to Target</div><div class="value">${money(gap)}</div><div class="hint">Based on Total Value</div></div>
+      <div class="card kpi" style="--accent:#9b87b7"><div class="label">Return Value</div><div class="value">${money(RV)}</div><div class="hint">Return rate ${pct(RP)}</div></div>
+      <div class="card kpi" style="--accent:#6d7650"><div class="label">Variance</div><div class="value">${money(V)}</div><div class="hint">Reported variance (+/-)</div></div>
+    </section>
+
+    <section class="section chartgrid">
+      <div class="card"><div class="cardhead"><div><div class="cardtitle">Target vs Total Value</div><div class="cardnote">Grouped by ${groupCol||"available category"}</div></div></div><div class="chartbox"><canvas id="barChart"></canvas></div></div>
+      <div class="card"><div class="cardhead"><div><div class="cardtitle">Value Mix</div><div class="cardnote">Sold vs Transit</div></div></div><div class="smallchart"><canvas id="donutChart"></canvas></div></div>
+    </section>
+
+    <section class="section chartgrid2">
+      <div class="card"><div class="cardhead"><div><div class="cardtitle">Achievement by Group</div><div class="cardnote">Reported achievement percentage</div></div></div><div class="chartbox"><canvas id="achChart"></canvas></div></div>
+      <div class="card"><div class="cardhead"><div><div class="cardtitle">Performance Trend</div><div class="cardnote">Record sequence used when no date column exists</div></div></div><div class="chartbox"><canvas id="lineChart"></canvas></div></div>
+    </section>
+
+    <section class="section card">
+      <div class="cardhead"><div><div class="cardtitle">Automatic Insights</div><div class="cardnote">Generated from the currently filtered dataset</div></div><span class="badge">${mode} • ${n} rows</span></div>
+      <div class="insights" id="insights"></div>
+    </section>
+
+    <section class="section card">
+      <div class="cardhead"><div><div class="cardtitle">Detailed Performance</div><div class="cardnote">Sortable-style executive snapshot of the current view</div></div></div>
+      <div class="tablewrap"><table id="detailTable"></table></div>
+    </section>
+  `;
+
+  makeCharts(fr,cols,{target,sold,transit,total,ach,groupCol,employee});
+  makeInsights(fr,cols,{target,sold,transit,total,ach,variance,retVal,retPct,territory,employee});
+  makeTable(fr,cols,{target,sold,total,ach,variance,retPct,territory,employee});
+}
+
+function group(rows,col){
+  const m={};
+  if(!col)return m;
+  rows.forEach(r=>{const k=String(r[col]??"Unknown"); if(!m[k])m[k]=[];m[k].push(r)});
+  return m;
+}
+function makeCharts(rows,cols,c){
+  const g=group(rows,c.groupCol), keys=Object.keys(g);
+  const labels=keys.slice(0,20);
+  const opts={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{usePointStyle:true,font:{size:11}}}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{grid:{color:"#eee6de"},ticks:{font:{size:10}}}}};
+  charts.bar=new Chart(document.getElementById("barChart"),{type:"bar",data:{labels,datasets:[
+    {label:"Target",data:labels.map(k=>sum(g[k],c.target)),backgroundColor:"#cfc2df",borderRadius:7},
+    {label:"Total",data:labels.map(k=>sum(g[k],c.total)),backgroundColor:"#6b4934",borderRadius:7}
+  ]},options:opts});
+  charts.ach=new Chart(document.getElementById("achChart"),{type:"bar",data:{labels,datasets:[{label:"Ach %",data:labels.map(k=>c.ach?avg(g[k],c.ach):sum(g[k],c.total)/Math.max(sum(g[k],c.target),1)*100),backgroundColor:"#6d7650",borderRadius:7}]},
+  options:{...opts,indexAxis:"y",scales:{x:{grid:{color:"#eee6de"},beginAtZero:true,ticks:{callback:v=>v+"%"}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});
+  charts.donut=new Chart(document.getElementById("donutChart"),{type:"doughnut",data:{labels:["Sold","Transit"],datasets:[{data:[sum(rows,c.sold),sum(rows,c.transit)],backgroundColor:["#c4864e","#9b87b7"],borderWidth:0,hoverOffset:7}]},options:{responsive:true,maintainAspectRatio:false,cutout:"68%",plugins:{legend:{position:"bottom",labels:{usePointStyle:true,padding:16,font:{size:11}}}}}});
+  const dateCol=findCol(cols,["date","month","period"]);
+  let trendRows=rows;
+  let labels2;
+  if(dateCol){
+    const gg=group(rows,dateCol); labels2=Object.keys(gg).slice(0,30);
+    trendRows=labels2.map(k=>({k,v:sum(gg[k],c.total)}));
+  }else{
+    labels2=rows.slice(0,30).map((r,i)=>c.employee?String(r[c.employee]).split(",")[0]+" #"+(i+1):"#"+(i+1));
+    trendRows=rows.slice(0,30).map(r=>({v:num(r[c.total])}));
+  }
+  charts.line=new Chart(document.getElementById("lineChart"),{type:"line",data:{labels:labels2,datasets:[{label:"Total Value",data:trendRows.map(x=>x.v),borderColor:"#d97835",backgroundColor:"#d9783520",fill:true,tension:.35,pointRadius:2}]},options:opts});
+}
+function makeInsights(rows,cols,c){
+  const box=document.getElementById("insights"); const g=group(rows,c.territory||c.employee||findCol(cols,["area"])); 
+  const entries=Object.entries(g).map(([k,v])=>({k,ach:c.ach?avg(v,c.ach):sum(v,c.total)/Math.max(sum(v,c.target),1)*100,total:sum(v,c.total),target:sum(v,c.target),ret:c.retPct?avg(v,c.retPct):0})).sort((a,b)=>b.ach-a.ach);
+  const top=entries[0], low=entries[entries.length-1];
+  const bestReturn=[...entries].sort((a,b)=>b.ret-a.ret)[0];
+  const items=[
+    ["Top achievement",top?`${top.k} leads at ${pct(top.ach)}.`:"Not enough data.","Highest reported achievement in the current filter."],
+    ["Biggest opportunity",low?`${low.k} is at ${pct(low.ach)}.`:"Not enough data.","This is the lowest achievement group in the current view."],
+    ["Target gap",`${money(Math.max(sum(rows,c.target)-sum(rows,c.total),0))} remains.`,"Gap is calculated against Total Value (sold + transit)."],
+    ["Transit potential",`${money(sum(rows,c.transit))} in transit.`,"Transit can materially change realized performance once converted."],
+    ["Return watch",bestReturn&&bestReturn.ret?`${bestReturn.k}: ${pct(bestReturn.ret)} return rate.`:"Return-rate data is limited.","Higher return percentage deserves review."],
+    ["Mix signal",`${pct(sum(rows,c.sold)/Math.max(sum(rows,c.total),1)*100)} of total is sold.`,"The balance is transit value."]
+  ];
+  box.innerHTML=items.map(x=>`<div class="insight"><div class="tag">${x[0]}</div><strong>${x[1]}</strong><span>${x[2]}</span></div>`).join("");
+}
+function makeTable(rows,cols,c){
+  const groupCol=c.territory||c.employee;
+  const g=group(rows,groupCol);
+  const arr=Object.entries(g).map(([k,v])=>({name:k,target:sum(v,c.target),sold:sum(v,c.sold),total:sum(v,c.total),ach:c.ach?avg(v,c.ach):sum(v,c.total)/Math.max(sum(v,c.target),1)*100,var:sum(v,c.variance),ret:c.retPct?avg(v,c.retPct):0})).sort((a,b)=>b.ach-a.ach);
+  document.getElementById("detailTable").innerHTML=`<thead><tr><th>${groupCol||"Group"}</th><th>Target</th><th>Sold</th><th>Total</th><th>Ach %</th><th>Variance</th><th>Return %</th></tr></thead><tbody>${
+    arr.map(x=>`<tr><td><b>${x.name}</b></td><td>${money(x.target)}</td><td>${money(x.sold)}</td><td>${money(x.total)}</td><td><span class="badge">${pct(x.ach)}</span></td><td>${money(x.var)}</td><td>${pct(x.ret)}</td></tr>`).join("")
+  }</tbody>`;
+}
+
+function importDataset(e){
+  const file=e.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      let wb;
+      if(/\.csv$/i.test(file.name)){
+        const text=new TextDecoder().decode(ev.target.result);
+        const rows=text.split(/\r?\n/).filter(Boolean).map(x=>x.split(","));
+        const cols=rows[0]||[]; dataStore={"Imported CSV":{columns:cols,rows:rows.slice(1).map(r=>Object.fromEntries(cols.map((c,i)=>[c,r[i]])))}}; mode="MPE";
+      }else{
+        wb=XLSX.read(ev.target.result,{type:"array",cellDates:true});
+        const obj={};
+        wb.SheetNames.forEach(s=>{
+          const arr=XLSX.utils.sheet_to_json(wb.Sheets[s],{defval:null});
+          obj[s]={columns:arr.length?Object.keys(arr[0]):[],rows:arr};
+        });
+        dataStore=obj;
+        if(!Object.keys(obj).some(k=>/mpe/i.test(k)) && Object.keys(obj).some(k=>/ase/i.test(k))) mode="ASE";
+      }
+      setMode(mode);
+      dataSource = "📱 Local browser preview"; updateSourceBadge(); alert("Dataset imported successfully. Dashboard refreshed in this browser.");
+    }catch(err){alert("Could not read this file. Please use a valid CSV, XLS or XLSX file.");console.error(err)}
+    e.target.value="";
+  };
+  reader.readAsArrayBuffer(file);
+}
+loadOnlineWorkbook();
+</script>
+</body>
+</html>
