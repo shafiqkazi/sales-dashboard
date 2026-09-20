@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MPE & ASE Sales Intelligence Dashboard</title>
+<title>Sales Intelligence of K1</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
@@ -23,11 +23,12 @@ button,select,input{font:inherit}
 display:grid;place-items:center;font-weight:900;box-shadow:0 10px 25px #6b493426}
 h1{font-size:30px;line-height:1.1;margin:0;letter-spacing:-.7px}
 .sub{color:var(--muted);font-size:13px;margin-top:6px}
-.actions{display:flex;gap:10px;align-items:center}
-.btn{border:0;border-radius:13px;padding:12px 16px;font-weight:750;cursor:pointer;transition:.2s;display:flex;gap:8px;align-items:center}
+.actions{display:flex;gap:8px;align-items:center}
+.btn{border:0;border-radius:13px;padding:9px 12px;font-weight:750;cursor:pointer;transition:.2s;display:flex;gap:8px;align-items:center}
 .btn.primary{background:var(--brown);color:#fff;box-shadow:0 9px 20px #6b49342b}
 .btn.primary:hover{transform:translateY(-1px);background:#563b2b}
 .btn.ghost{background:#fffaf4;color:var(--brown);border:1px solid var(--line)}
+.actions .btn{width:120px;height:38px;font-size:12px;line-height:1;white-space:nowrap;justify-content:center}
 #fileInput{display:none}
 .tabs{display:flex;gap:7px;background:#eee5dc;padding:5px;border-radius:14px;width:max-content;margin-bottom:18px}
 .tab{border:0;background:transparent;padding:9px 17px;border-radius:10px;color:#75685d;font-weight:800;cursor:pointer}
@@ -64,7 +65,7 @@ th{position:sticky;top:0;background:#fffaf4;color:#786b60;font-size:10px;text-tr
 .footer{padding:22px 3px;color:#9b8e83;font-size:11px;text-align:center}
 .empty{padding:50px;text-align:center;color:var(--muted)}
 @media(max-width:1050px){.grid{grid-template-columns:repeat(2,1fr)}.chartgrid,.chartgrid2{grid-template-columns:1fr}.filters{grid-template-columns:repeat(3,1fr)}.insights{grid-template-columns:1fr}}
-@media(max-width:650px){.wrap{padding:16px}.top{align-items:flex-start;flex-direction:column}.actions{width:100%}.actions .btn{flex:1;justify-content:center}.filters{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}h1{font-size:25px}}
+@media(max-width:650px){.wrap{padding:16px}.top{align-items:flex-start;flex-direction:column}.actions{width:100%}.actions .btn{width:auto;flex:1;justify-content:center}.filters{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}h1{font-size:25px}}
 </style>
 </head>
 <body>
@@ -72,7 +73,7 @@ th{position:sticky;top:0;background:#fffaf4;color:#786b60;font-size:10px;text-tr
   <header class="top">
     <div class="brand">
       <div class="logo">SI</div>
-      <div><h1>Sales Intelligence</h1><div class="sub">MPE & ASE territory performance • live, filterable executive view</div></div>
+      <div><h1>Sales Intelligence of K1</h1><div class="sub">MPE & ASE territory performance • live, filterable executive view</div></div>
     </div>
     <div class="actions">
       <button class="btn ghost" onclick="resetFilters()">↺ Reset</button>
@@ -82,13 +83,12 @@ th{position:sticky;top:0;background:#fffaf4;color:#786b60;font-size:10px;text-tr
   </header>
 
   <div class="tabs">
-    <button class="tab active" id="tabMPE" onclick="setMode('MPE')">MPE View</button>
     <button class="tab" id="tabASE" onclick="setMode('ASE')">ASE View</button>
+    <button class="tab active" id="tabMPE" onclick="setMode('MPE')">MPE View</button>
   </div>
 
   <div style="display:flex;justify-content:flex-end;margin:-6px 0 10px"><span id="sourceBadge" class="badge">Loading…</span></div>
   <section class="filters">
-    <div class="filter"><label>Region</label><select id="fRegion" onchange="render()"></select></div>
     <div class="filter"><label>Area</label><select id="fArea" onchange="render()"></select></div>
     <div class="filter"><label>Territory</label><select id="fTerritory" onchange="render()"></select></div>
     <div class="filter"><label>Team / Division</label><select id="fTeam" onchange="render()"></select></div>
@@ -96,7 +96,7 @@ th{position:sticky;top:0;background:#fffaf4;color:#786b60;font-size:10px;text-tr
   </section>
 
   <main id="app"></main>
-  <div class="footer">Version 2 • Live source: ./data.xlsx • Replace data.xlsx on GitHub to refresh the dashboard</div>
+  <div class="footer">Version 3 • Live source: ./data.xlsx • Replace data.xlsx on GitHub to refresh the dashboard<br><strong>Powered by Shafiq Kazi</strong></div>
 </div>
 
 <script>
@@ -106,7 +106,7 @@ let mode = "MPE";
 let charts = {};
 
 
-/* ===== Version 2: live GitHub Pages Excel loader =====
+/* ===== Version 3: live GitHub Pages Excel loader =====
    Keep these two files in the same GitHub Pages folder:
      index.html
      data.xlsx
@@ -179,7 +179,6 @@ function unique(rows,col){return [...new Set(rows.map(r=>r[col]).filter(v=>v!==n
 function selectVal(id){return document.getElementById(id).value}
 function populateFilters(rows, cols){
   const map={
-    fRegion:findCol(cols,["region"]),
     fArea:findCol(cols,["area"]),
     fTerritory:findCol(cols,["territorycode","territory"]),
     fTeam: mode==="MPE"?findCol(cols,["team"]):findCol(cols,["division"]),
@@ -195,7 +194,6 @@ function populateFilters(rows, cols){
 function filteredRows(){
   const d=sheetsForMode(), rows=d.rows, cols=d.columns;
   const pairs=[
-    ["fRegion",findCol(cols,["region"])],
     ["fArea",findCol(cols,["area"])],
     ["fTerritory",findCol(cols,["territorycode","territory"])],
     ["fTeam",mode==="MPE"?findCol(cols,["team"]):findCol(cols,["division"])],
@@ -210,7 +208,7 @@ function setMode(m){
   resetFilters(false); render();
 }
 function resetFilters(doRender=true){
-  ["fRegion","fArea","fTerritory","fTeam","fEmployee"].forEach(id=>document.getElementById(id).value="");
+  ["fArea","fTerritory","fTeam","fEmployee"].forEach(id=>document.getElementById(id).value="");
   if(doRender) render();
 }
 function sum(rows,col){return col?rows.reduce((a,r)=>a+num(r[col]),0):0}
@@ -231,14 +229,14 @@ function render(){
   const retPct=findCol(cols,["returnperc","returnpercentage"]);
   const territory=findCol(cols,["territorycode","territory"]);
   const employee=mode==="MPE"?findCol(cols,["territoryemployee","employee"]):findCol(cols,["aseemployee","employee"]);
-  const groupCol=findCol(cols,["territorycode","territory","area"]);
+  const territorySelected = selectVal("fTerritory");
+  const groupCol = (mode==="MPE" && territorySelected) ? employee : findCol(cols,["territorycode","territory","area"]);
 
   const T=sum(fr,target), S=sum(fr,sold), TR=sum(fr,transit), TV=sum(fr,total);
   const A=T?TV/T*100:avg(fr,ach);
   const V=sum(fr,variance), RV=sum(fr,retVal), RP=S?RV/S*100:avg(fr,retPct);
   const n=fr.length;
   const achieved=fr.filter(r=>num(r[ach])>=100).length;
-  const gap=Math.max(T-TV,0);
 
   document.getElementById("app").innerHTML=`
     <section class="grid">
@@ -247,14 +245,12 @@ function render(){
       <div class="card kpi" style="--accent:#6d7650"><div class="label">Total Value</div><div class="value">${money(TV)}</div><div class="hint">Sold + transit</div></div>
       <div class="card kpi" style="--accent:#9b87b7"><div class="label">Achievement</div><div class="value">${pct(A)}</div><div class="hint">${achieved} records at/above 100% by reported Ach %</div></div>
       <div class="card kpi" style="--accent:#d97835"><div class="label">Transit Value</div><div class="value">${money(TR)}</div><div class="hint">${T?pct(TR/T*100):"0%"} of target</div></div>
-      <div class="card kpi" style="--accent:#6b4934"><div class="label">Gap to Target</div><div class="value">${money(gap)}</div><div class="hint">Based on Total Value</div></div>
       <div class="card kpi" style="--accent:#9b87b7"><div class="label">Return Value</div><div class="value">${money(RV)}</div><div class="hint">Return rate ${pct(RP)}</div></div>
       <div class="card kpi" style="--accent:#6d7650"><div class="label">Variance</div><div class="value">${money(V)}</div><div class="hint">Reported variance (+/-)</div></div>
     </section>
 
-    <section class="section chartgrid">
+    <section class="section">
       <div class="card"><div class="cardhead"><div><div class="cardtitle">Target vs Total Value</div><div class="cardnote">Grouped by ${groupCol||"available category"}</div></div></div><div class="chartbox"><canvas id="barChart"></canvas></div></div>
-      <div class="card"><div class="cardhead"><div><div class="cardtitle">Value Mix</div><div class="cardnote">Sold vs Transit</div></div></div><div class="smallchart"><canvas id="donutChart"></canvas></div></div>
     </section>
 
     <section class="section chartgrid2">
@@ -294,7 +290,6 @@ function makeCharts(rows,cols,c){
   ]},options:opts});
   charts.ach=new Chart(document.getElementById("achChart"),{type:"bar",data:{labels,datasets:[{label:"Ach %",data:labels.map(k=>c.ach?avg(g[k],c.ach):sum(g[k],c.total)/Math.max(sum(g[k],c.target),1)*100),backgroundColor:"#6d7650",borderRadius:7}]},
   options:{...opts,indexAxis:"y",scales:{x:{grid:{color:"#eee6de"},beginAtZero:true,ticks:{callback:v=>v+"%"}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});
-  charts.donut=new Chart(document.getElementById("donutChart"),{type:"doughnut",data:{labels:["Sold","Transit"],datasets:[{data:[sum(rows,c.sold),sum(rows,c.transit)],backgroundColor:["#c4864e","#9b87b7"],borderWidth:0,hoverOffset:7}]},options:{responsive:true,maintainAspectRatio:false,cutout:"68%",plugins:{legend:{position:"bottom",labels:{usePointStyle:true,padding:16,font:{size:11}}}}}});
   const dateCol=findCol(cols,["date","month","period"]);
   let trendRows=rows;
   let labels2;
@@ -323,11 +318,20 @@ function makeInsights(rows,cols,c){
   box.innerHTML=items.map(x=>`<div class="insight"><div class="tag">${x[0]}</div><strong>${x[1]}</strong><span>${x[2]}</span></div>`).join("");
 }
 function makeTable(rows,cols,c){
-  const groupCol=c.territory||c.employee;
+  // In MPE view, selecting a territory shows the individual MPEs inside it.
+  const selectedTerritory = selectVal("fTerritory");
+  const groupCol = (mode==="MPE" && selectedTerritory) ? c.employee : (mode==="ASE" ? c.employee : c.territory);
   const g=group(rows,groupCol);
-  const arr=Object.entries(g).map(([k,v])=>({name:k,target:sum(v,c.target),sold:sum(v,c.sold),total:sum(v,c.total),ach:c.ach?avg(v,c.ach):sum(v,c.total)/Math.max(sum(v,c.target),1)*100,var:sum(v,c.variance),ret:c.retPct?avg(v,c.retPct):0})).sort((a,b)=>b.ach-a.ach);
-  document.getElementById("detailTable").innerHTML=`<thead><tr><th>${groupCol||"Group"}</th><th>Target</th><th>Sold</th><th>Total</th><th>Ach %</th><th>Variance</th><th>Return %</th></tr></thead><tbody>${
-    arr.map(x=>`<tr><td><b>${x.name}</b></td><td>${money(x.target)}</td><td>${money(x.sold)}</td><td>${money(x.total)}</td><td><span class="badge">${pct(x.ach)}</span></td><td>${money(x.var)}</td><td>${pct(x.ret)}</td></tr>`).join("")
+  const teamCol = mode==="MPE" ? findCol(cols,["team"]) : null;
+  const arr=Object.entries(g).map(([k,v])=>({
+    name:k, team:teamCol ? String(v[0]?.[teamCol] ?? "") : "",
+    target:sum(v,c.target), sold:sum(v,c.sold), total:sum(v,c.total),
+    ach:c.ach?avg(v,c.ach):sum(v,c.total)/Math.max(sum(v,c.target),1)*100,
+    var:sum(v,c.variance), ret:c.retPct?avg(v,c.retPct):0
+  })).sort((a,b)=>b.ach-a.ach);
+  const firstHead = mode==="MPE" ? "MPE" : (groupCol||"Employee");
+  document.getElementById("detailTable").innerHTML=`<thead><tr><th>${firstHead}</th>${mode==="MPE"?"<th>Team</th>":""}<th>Target</th><th>Sold</th><th>Total</th><th>Ach %</th><th>Variance</th><th>Return %</th></tr></thead><tbody>${
+    arr.map(x=>`<tr><td><b>${x.name}</b></td>${mode==="MPE"?`<td><span class="badge">${x.team}</span></td>`:""}<td>${money(x.target)}</td><td>${money(x.sold)}</td><td>${money(x.total)}</td><td><span class="badge">${pct(x.ach)}</span></td><td>${money(x.var)}</td><td>${pct(x.ret)}</td></tr>`).join("")
   }</tbody>`;
 }
 
