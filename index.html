@@ -19,8 +19,14 @@ button,select,input{font:inherit}
 .wrap{max-width:1500px;margin:auto;padding:28px}
 .top{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:25px}
 .brand{display:flex;align-items:center;gap:14px}
-.logo{width:48px;height:48px;border-radius:16px;background:linear-gradient(135deg,var(--brown),var(--caramel));color:white;
-display:grid;place-items:center;font-weight:900;box-shadow:0 10px 25px #6b493426}
+.logo{width:112px;height:58px;border-radius:12px;background:#fffdf9;border:1px solid #dfe6ef;
+display:flex;align-items:center;gap:8px;padding:7px 9px;box-shadow:0 8px 20px #355c8a18;overflow:hidden}
+.bxmark{width:34px;height:34px;border-radius:7px;background:#1465a8;color:#fff;display:grid;place-items:center;
+font-weight:950;font-size:18px;letter-spacing:-1px;box-shadow:inset 0 0 0 2px #ffffff55}
+.bxtext{line-height:.92}
+.bxtext b{display:block;color:#155f9f;font-size:13px;letter-spacing:.35px}
+.bxtext span{display:block;color:#4e5965;font-size:8px;font-weight:800;letter-spacing:.8px;margin-top:3px}
+.bxtext em{display:block;color:#777;font-size:6.5px;font-style:normal;margin-top:3px}
 h1{font-size:30px;line-height:1.1;margin:0;letter-spacing:-.7px}
 .sub{color:var(--muted);font-size:13px;margin-top:6px}
 .actions{display:flex;gap:8px;align-items:center}
@@ -29,8 +35,9 @@ h1{font-size:30px;line-height:1.1;margin:0;letter-spacing:-.7px}
 .btn.primary:hover{transform:translateY(-1px);background:#563b2b}
 .btn.ghost{background:#fffaf4;color:var(--brown);border:1px solid var(--line)}
 .actions .btn{width:120px;height:38px;font-size:12px;line-height:1;white-space:nowrap;justify-content:center}
-#fileInput{display:none}
-.tabs{display:flex;gap:7px;background:#eee5dc;padding:5px;border-radius:14px;width:max-content;margin-bottom:18px}
+.viewbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.tabs{display:flex;gap:7px;background:#eee5dc;padding:5px;border-radius:14px;width:max-content;margin:0}
+.view-reset{width:120px;height:38px;font-size:12px;line-height:1;white-space:nowrap;justify-content:center}
 .tab{border:0;background:transparent;padding:9px 17px;border-radius:10px;color:#75685d;font-weight:800;cursor:pointer}
 .tab.active{background:#fffdf9;color:var(--brown);box-shadow:0 3px 12px #6b493410}
 .filters{display:grid;grid-template-columns:repeat(5,minmax(130px,1fr));gap:10px;margin-bottom:18px}
@@ -65,26 +72,40 @@ th{position:sticky;top:0;background:#fffaf4;color:#786b60;font-size:10px;text-tr
 .footer{padding:22px 3px;color:#9b8e83;font-size:11px;text-align:center}
 .empty{padding:50px;text-align:center;color:var(--muted)}
 @media(max-width:1050px){.grid{grid-template-columns:repeat(2,1fr)}.chartgrid,.chartgrid2{grid-template-columns:1fr}.filters{grid-template-columns:repeat(3,1fr)}.insights{grid-template-columns:1fr}}
-@media(max-width:650px){.wrap{padding:16px}.top{align-items:flex-start;flex-direction:column}.actions{width:100%}.actions .btn{width:auto;flex:1;justify-content:center}.filters{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}h1{font-size:25px}}
+@media(max-width:650px){
+      .wrap{padding:16px}
+      .top{align-items:flex-start;flex-direction:column;margin-bottom:18px}
+      .brand{width:100%}
+      .logo{width:104px;height:54px}
+      .bxtext b{font-size:12px}
+      .viewbar{width:100%;gap:8px}
+      .tabs{flex:1;min-width:0}
+      .tab{padding:9px 12px;font-size:12px;flex:1}
+      .view-reset{width:92px;flex:0 0 92px}
+      .filters{grid-template-columns:1fr 1fr}
+      .grid{grid-template-columns:1fr}
+      h1{font-size:25px}
+    }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="top">
     <div class="brand">
-      <div class="logo">SI</div>
+      <div class="logo" aria-label="Beximco Pharma">
+        <div class="bxmark">B</div>
+        <div class="bxtext"><b>BEXIMCO</b><span>PHARMA</span><em>here’s to life</em></div>
+      </div>
       <div><h1>Sales Intelligence of K1</h1><div class="sub">MPE & ASE territory performance • live, filterable executive view</div></div>
-    </div>
-    <div class="actions">
-      <button class="btn ghost" onclick="resetFilters()">↺ Reset</button>
-      <button class="btn primary" onclick="document.getElementById('fileInput').click()">＋ Import / Preview</button>
-      <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" onchange="importDataset(event)">
     </div>
   </header>
 
-  <div class="tabs">
-    <button class="tab" id="tabASE" onclick="setMode('ASE')">ASE View</button>
-    <button class="tab active" id="tabMPE" onclick="setMode('MPE')">MPE View</button>
+  <div class="viewbar">
+    <div class="tabs">
+      <button class="tab" id="tabASE" onclick="setMode('ASE')">ASE View</button>
+      <button class="tab active" id="tabMPE" onclick="setMode('MPE')">MPE View</button>
+    </div>
+    <button class="btn ghost view-reset" onclick="resetFilters()">↺ Reset</button>
   </div>
 
   <div style="display:flex;justify-content:flex-end;margin:-6px 0 10px"><span id="sourceBadge" class="badge">Loading…</span></div>
@@ -96,7 +117,7 @@ th{position:sticky;top:0;background:#fffaf4;color:#786b60;font-size:10px;text-tr
   </section>
 
   <main id="app"></main>
-  <div class="footer">Version 3 • Live source: ./data.xlsx • Replace data.xlsx on GitHub to refresh the dashboard<br><strong>Powered by Shafiq Kazi</strong></div>
+  <div class="footer">Version 4 • Live source: ./data.xlsx • Replace data.xlsx on GitHub to refresh the dashboard<br><strong>Powered by Shafiq Kazi</strong></div>
 </div>
 
 <script>
