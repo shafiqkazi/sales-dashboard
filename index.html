@@ -1,15 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0d3b66">
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js');
-  });
-}
-</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sales Intelligence of K1</title>
@@ -58,11 +49,11 @@ h1{font-size:30px;line-height:1.1;margin:0;letter-spacing:-.7px}
 .filter select{width:100%;border:0;background:transparent;color:var(--ink);font-weight:700;outline:0}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 .card{background:rgba(255,253,249,.92);border:1px solid #eadfd5;border-radius:20px;box-shadow:0 12px 35px #5a463313;padding:18px}
-.kpi{min-height:126px;position:relative;overflow:hidden}
-.kpi:after{content:"";position:absolute;width:90px;height:90px;border-radius:50%;right:-28px;top:-28px;background:var(--accent,#c4864e);opacity:.10}
-.kpi .label{color:var(--muted);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.8px}
-.kpi .value{font-size:29px;font-weight:900;letter-spacing:-1px;margin-top:10px}
-.kpi .hint{font-size:11px;color:var(--muted);margin-top:5px}
+.kpi{min-height:63px;padding:10px 12px;position:relative;overflow:hidden}
+.kpi:after{content:"";position:absolute;width:45px;height:45px;border-radius:50%;right:-14px;top:-14px;background:var(--accent,#c4864e);opacity:.10}
+.kpi .label{color:var(--muted);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.5px}
+.kpi .value{font-size:16px;font-weight:900;letter-spacing:-.5px;margin-top:4px}
+.kpi .hint{font-size:8px;color:var(--muted);margin-top:2px}
 .section{margin-top:16px}
 .chartgrid{display:grid;grid-template-columns:1.6fr 1fr;gap:16px}
 .chartgrid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
@@ -95,7 +86,7 @@ th{position:sticky;top:0;background:#fffaf4;color:#786b60;font-size:10px;text-tr
       .tab{padding:9px 12px;font-size:12px;flex:1}
       .view-reset{width:92px;flex:0 0 92px}
       .filters{grid-template-columns:1fr 1fr}
-      .grid{grid-template-columns:1fr}
+      .grid{grid-template-columns:repeat(2,1fr);gap:10px}
       h1{font-size:25px}
     }
 
@@ -110,9 +101,9 @@ th{position:sticky;top:0;background:#fffaf4;color:#786b60;font-size:10px;text-tr
 .logo img{height:100%;width:auto;display:block}
 @media(max-width:650px){.logo{width:auto;height:37px}}
 /* Rx share card */
-.rxrow{display:flex;justify-content:space-between;align-items:baseline;margin-top:6px}
-.rxrow span{font-size:12px;color:var(--muted);font-weight:800}
-.rxrow b{font-size:20px;font-weight:900;letter-spacing:-.5px}
+.rxrow{display:flex;justify-content:space-between;align-items:baseline;margin-top:3px}
+.rxrow span{font-size:9px;color:var(--muted);font-weight:800}
+.rxrow b{font-size:13px;font-weight:900;letter-spacing:-.3px}
 /* Monthly view */
 .monthbtn{height:34px;padding:0 14px;font-size:12px;white-space:nowrap}
 .monthbtn.on{background:var(--brown);color:#fff;border-color:var(--brown)}
@@ -143,6 +134,9 @@ th.sortable{cursor:pointer;user-select:none}
 @media(max-width:650px){.skyhead{background-size:auto 150%;background-position:center bottom}}
 .skyhead h1{color:#fff;text-shadow:0 2px 10px #000000a6,0 1px 2px #00000080}
 .skyhead .sub{text-shadow:0 0 8px #ffffffb3,0 0 2px #ffffff99}
+.kpi.namecard{grid-column:span 2}
+.kpi.namecard .value{font-size:15px;letter-spacing:-.3px;line-height:1.2;overflow-wrap:anywhere}
+.footer strong{font-size:14px;color:#4a392c}
 </style>
 </head>
 <body>
@@ -660,6 +654,28 @@ function renderProducts(){
   }<tr class="mtot"><td></td><td><b>Total (${list.length} products)</b></td><td>${money(T)}</td><td>${money(S)}</td><td><span class="badge">${T>0?pct(S/T*100):"—"}</span></td></tr></tbody></table></div></section>`;
 }
 
+/* Name card: who/what the current filters point to */
+function viewName(fr,cols){
+  const ac=findCol(cols,["area"]), tc=findCol(cols,["territorycode","territory"]);
+  const ec=mode==="MPE"?findCol(cols,["territoryemployee","employee"]):findCol(cols,["aseemployee","employee"]);
+  const teamC=mode==="MPE"?findCol(cols,["team"]):null;
+  const area=selectVal("fArea"), terr=selectVal("fTerritory"), team=selectVal("fTeam"), emp=selectVal("fEmployee");
+  const uniq=c=>c?[...new Set(fr.map(r=>r[c]).filter(v=>v!==null&&v!==undefined&&String(v).trim()!==""))].map(String).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true})):[];
+  if(emp){
+    const r=fr[0]||{};
+    return {name:emp,hint:mode==="ASE"?"ASE"+(ac&&r[ac]?" • Area "+r[ac]:""):"MPE"+(tc&&r[tc]?" • "+r[tc]:"")+(teamC&&r[teamC]?" • "+r[teamC]:"")};
+  }
+  if(mode==="ASE"){
+    if(area){const n=uniq(ec);return {name:n.length?n.join(" + "):area,hint:"ASE • Area "+area}}
+    return {name:"K1",hint:"All areas • ASE view"};
+  }
+  if(terr&&team){const n=uniq(ec);return {name:n.length?n.join(" + "):terr,hint:"MPE • "+terr+" • "+team}}
+  if(terr)return {name:terr,hint:"Territory • all teams"};
+  if(area){const t=uniq(tc);return {name:t.length?t.join(" + "):area,hint:"Area "+area+" • "+t.length+(t.length===1?" territory":" territories")}}
+  if(team)return {name:"K1 • "+team,hint:"All areas • "+team+" team"};
+  return {name:"K1",hint:"All areas • MPE view"};
+}
+
 function render(){
   ensureMonths();
   destroyCharts();
@@ -685,6 +701,7 @@ function render(){
   const n=fr.length;
   const achieved=fr.filter(r=>num(r[ach])>=100).length;
 
+  const nm=viewName(fr,cols);
   const terrArea={}; if(mode==="MPE"){const tc=findCol(cols,["territorycode","territory"]),ac=findCol(cols,["area"]); rows.forEach(r=>{if(tc&&ac)terrArea[String(r[tc])]=String(r[ac])})}
   const rxMonthData=rxData(selMonth);
   rxState=rxMonthData.length?rxCompute(rxMonthData,rxContext(fr,cols),terrArea):{summary:null,list:[],ctx:{}};
@@ -695,11 +712,10 @@ function render(){
 
   document.getElementById("app").innerHTML=`
     <section class="grid">
+      <div class="card kpi namecard" style="--accent:#6b4934"><div class="label">Name</div><div class="value">${esc(nm.name)}</div><div class="hint">${esc(nm.hint)}</div></div>
       <div class="card kpi" style="--accent:#6b4934"><div class="label">Target Value</div><div class="value">${money(T)}</div><div class="hint">${n.toLocaleString()} ${mode} records in view</div></div>
-      <div class="card kpi" style="--accent:#c4864e"><div class="label">Sold Value</div><div class="value">${money(S)}</div><div class="hint">Direct sold contribution</div></div>
       <div class="card kpi" style="--accent:#6d7650"><div class="label">Total Value</div><div class="value">${money(TV)}</div><div class="hint">Sold + transit</div></div>
       <div class="card kpi" style="--accent:#9b87b7"><div class="label">Achievement</div><div class="value">${pct(A)}</div><div class="hint">${achieved} records at/above 100% by reported Ach %</div></div>
-      <div class="card kpi" style="--accent:#d97835"><div class="label">Transit Value</div><div class="value">${money(TR)}</div><div class="hint">${T?pct(TR/T*100):"0%"} of target</div></div>
       <div class="card kpi" style="--accent:#9b87b7"><div class="label">Return Value</div><div class="value">${money(RV)}</div><div class="hint">Return rate ${pct(RP)}</div></div>
       <div class="card kpi" style="--accent:#6d7650"><div class="label">Variance</div><div class="value">${money(V)}</div><div class="hint">Reported variance (+/-)</div></div>
       ${rxCard}
