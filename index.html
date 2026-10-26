@@ -777,7 +777,10 @@ function makeCharts(rows,cols,c){
   options:{...opts,indexAxis:"y",scales:{x:{grid:{color:"#eee6de"},beginAtZero:true,ticks:{callback:v=>v+"%"}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});
 }
 function makeInsights(rows,cols,c){
-  const box=document.getElementById("insights"); const g=group(rows,c.territory||c.employee||findCol(cols,["area"])); 
+  const box=document.getElementById("insights");
+  /* Territory selected (MPE) -> compare the employees inside that territory; otherwise group as before */
+  const gcol=(mode==="MPE"&&selectVal("fTerritory")&&c.employee)?c.employee:(c.territory||c.employee||findCol(cols,["area"]));
+  const g=group(rows,gcol); 
   const entries=Object.entries(g).map(([k,v])=>({k,ach:c.ach?avg(v,c.ach):sum(v,c.total)/Math.max(sum(v,c.target),1)*100,total:sum(v,c.total),target:sum(v,c.target),ret:c.retPct?avg(v,c.retPct):0})).sort((a,b)=>b.ach-a.ach);
   const top=entries[0], low=entries[entries.length-1];
   const bestReturn=[...entries].sort((a,b)=>b.ret-a.ret)[0];
