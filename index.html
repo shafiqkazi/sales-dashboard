@@ -304,6 +304,7 @@ function findCol(cols, patterns){
 }
 function num(v){return typeof v==="number"?v:(v==null||v===""?0:Number(String(v).replace(/,/g,""))||0)}
 function money(v){return "৳"+Math.round(v).toLocaleString("en-BD")}
+function plainNum(v){return Math.round(v).toLocaleString("en-US")}   /* no currency sign, for copy-paste into Excel */
 function pct(v){return (Number(v)||0).toFixed(1)+"%"}
 function unique(rows,col){return [...new Set(rows.map(r=>r[col]).filter(v=>v!==null&&v!==undefined&&v!==""))].sort((a,b)=>String(a).localeCompare(String(b),undefined,{numeric:true}))}
 function selectVal(id){return document.getElementById(id).value}
@@ -650,8 +651,8 @@ function renderProducts(){
   const th=(c,l)=>`<th class="sortable" onclick="sortProducts('${c}')">${l}${arrow(c)}</th>`;
   const toggle=(pl.hasFocus&&(pl.otherCount>0||prodShowAll)?`<button class="btn ghost sm${prodShowAll?" on":""}" onclick="toggleAllProducts()">${prodShowAll?"Focus products only":"Show all products (+"+pl.otherCount+")"}</button>`:"")+flyBtn;
   host.innerHTML=`<section class="section card">${headWith(toggle)}<div class="tablewrap"><table><thead><tr>${th("no","No")}${th("name","Product")}${th("t","Target Value")}${th("s","Sold+Transit Value")}${th("a","Ach %")}</tr></thead><tbody>${
-    list.map((x,i)=>`<tr><td>${i+1}</td><td><b>${esc(x.name)}</b></td><td>${money(x.t)}</td><td>${money(x.s)}</td><td><span class="badge">${x.a==null?"—":pct(x.a)}</span></td></tr>`).join("")
-  }<tr class="mtot"><td></td><td><b>Total (${list.length} products)</b></td><td>${money(T)}</td><td>${money(S)}</td><td><span class="badge">${T>0?pct(S/T*100):"—"}</span></td></tr></tbody></table></div></section>`;
+    list.map((x,i)=>`<tr><td>${i+1}</td><td><b>${esc(x.name)}</b></td><td>${plainNum(x.t)}</td><td>${plainNum(x.s)}</td><td><span class="badge">${x.a==null?"—":pct(x.a)}</span></td></tr>`).join("")
+  }<tr class="mtot"><td></td><td><b>Total (${list.length} products)</b></td><td>${plainNum(T)}</td><td>${plainNum(S)}</td><td><span class="badge">${T>0?pct(S/T*100):"—"}</span></td></tr></tbody></table></div></section>`;
 }
 
 /* Name card: who/what the current filters point to */
@@ -702,6 +703,7 @@ function render(){
   const achieved=fr.filter(r=>num(r[ach])>=100).length;
 
   const nm=viewName(fr,cols);
+  const nGroups=groupCol?Math.min(Object.keys(group(fr,groupCol)).length,20):0;
   const terrArea={}; if(mode==="MPE"){const tc=findCol(cols,["territorycode","territory"]),ac=findCol(cols,["area"]); rows.forEach(r=>{if(tc&&ac)terrArea[String(r[tc])]=String(r[ac])})}
   const rxMonthData=rxData(selMonth);
   rxState=rxMonthData.length?rxCompute(rxMonthData,rxContext(fr,cols),terrArea):{summary:null,list:[],ctx:{}};
@@ -722,11 +724,11 @@ function render(){
     </section>
 
     <section class="section">
-      <div class="card"><div class="cardhead"><div><div class="cardtitle">Target vs Total Value</div><div class="cardnote">Grouped by ${groupCol||"available category"}</div></div></div><div class="chartbox"><canvas id="barChart"></canvas></div></div>
+      <div class="card"><div class="cardhead"><div><div class="cardtitle">Target vs Total Value</div><div class="cardnote">Grouped by ${groupCol||"available category"}</div></div></div><div class="chartbox"${nGroups===1?' style="height:150px"':""}><canvas id="barChart"></canvas></div></div>
     </section>
 
     <section class="section">
-      <div class="card"><div class="cardhead"><div><div class="cardtitle">Achievement by Group</div><div class="cardnote">Reported achievement percentage</div></div></div><div class="chartbox"><canvas id="achChart"></canvas></div></div>
+      <div class="card"><div class="cardhead"><div><div class="cardtitle">${(selectVal("fEmployee")||(nGroups===1&&groupCol===employee))?"Employee Achievement":"Achievement by Group"}</div><div class="cardnote">Reported achievement percentage</div></div></div><div class="chartbox"${nGroups===1?' style="height:150px"':""}><canvas id="achChart"></canvas></div></div>
     </section>
 
     <section class="section card">
@@ -768,10 +770,10 @@ function makeCharts(rows,cols,c){
   const labels=keys.slice(0,20);
   const opts={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{usePointStyle:true,font:{size:11}}}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{grid:{color:"#eee6de"},ticks:{font:{size:10}}}}};
   charts.bar=new Chart(document.getElementById("barChart"),{type:"bar",data:{labels,datasets:[
-    {label:"Target",data:labels.map(k=>sum(g[k],c.target)),backgroundColor:"#cfc2df",borderRadius:7},
-    {label:"Total",data:labels.map(k=>sum(g[k],c.total)),backgroundColor:"#6b4934",borderRadius:7}
+    {label:"Target",data:labels.map(k=>sum(g[k],c.target)),backgroundColor:"#cfc2df",borderRadius:7,maxBarThickness:labels.length===1?30:undefined},
+    {label:"Total",data:labels.map(k=>sum(g[k],c.total)),backgroundColor:"#6b4934",borderRadius:7,maxBarThickness:labels.length===1?30:undefined}
   ]},options:opts});
-  charts.ach=new Chart(document.getElementById("achChart"),{type:"bar",data:{labels,datasets:[{label:"Ach %",data:labels.map(k=>c.ach?avg(g[k],c.ach):sum(g[k],c.total)/Math.max(sum(g[k],c.target),1)*100),backgroundColor:"#6d7650",borderRadius:7}]},
+  charts.ach=new Chart(document.getElementById("achChart"),{type:"bar",data:{labels,datasets:[{label:"Ach %",data:labels.map(k=>c.ach?avg(g[k],c.ach):sum(g[k],c.total)/Math.max(sum(g[k],c.target),1)*100),backgroundColor:"#6d7650",borderRadius:7,maxBarThickness:labels.length===1?30:undefined}]},
   options:{...opts,indexAxis:"y",scales:{x:{grid:{color:"#eee6de"},beginAtZero:true,ticks:{callback:v=>v+"%"}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});
 }
 function makeInsights(rows,cols,c){
