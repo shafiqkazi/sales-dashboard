@@ -512,6 +512,11 @@ const FLY_THI={
   ASE:["Remmo","Napa Extend","Suba-I","Nervalin CR","D-Rise","Becoral - D/DX","Turboclav","Billi","Neopem","Deflux"]
 };
 /* Nervalin CR = the three CR tablet strengths (Pcodes N16, N82, NCR); the capsules stay under "Nervalin" */
+/* Territory-specific Fly Thai lists (used instead of the general team lists when that territory is selected) */
+const FLY_THI_NOFORTUNA=[["Origina",["Remmo","Napa Extend","Numira","Suba-I","Neurocare"]],
+       ["Centina",["Tyclav","Becoral - D/DX","Progavi","Monocast","Nervalin CR"]],
+       ["Optima",["Arlin","Napa Extra","Turboclav","Billi","D-Rise"]]];
+const FLY_THI_TERR={K32:FLY_THI_NOFORTUNA,K52:FLY_THI_NOFORTUNA,K72:FLY_THI_NOFORTUNA,K81:FLY_THI_NOFORTUNA,K82:FLY_THI_NOFORTUNA};
 const EXTRA_P2N={N16:"Nervalin CR",N82:"Nervalin CR",NCR:"Nervalin CR"};
 function flyKey(v){return String(v).toLowerCase().replace(/[^a-z0-9]/g,"")}
 let productStore=null, productStatus="loading", productLive=null, prodSort={key:"no",dir:1}, prodCtx=null, prodShowAll=false, prodFly=false;
@@ -604,13 +609,21 @@ function productList(src,ctx){
     if(mode==="MPE"&&ctx.team&&f.team&&f.team!==ctx.team)return;
     const o=m.get(f.name)||{t:0,s:0}; out.push({name:f.name,t:o.t,s:o.s,ord:out.length});
   });
+  /* Team selected: focus products of other team blocks that this team really sold (e.g. Fortuna products sold by Origina where there is no Fortuna MPE) */
+  if(mode==="MPE"&&ctx.team){
+    meta.focus.forEach(f=>{
+      if(!f.team||f.team===ctx.team||out.some(x=>x.name===f.name))return;
+      const o=m.get(f.name); if(o&&(o.t||o.s))out.push({name:f.name,t:o.t,s:o.s,ord:out.length});
+    });
+  }
   const others=[...m.entries()].filter(([n,o])=>!focusNames.has(n)&&(o.t||o.s))
     .sort((a,b)=>a[0].localeCompare(b[0],undefined,{numeric:true,sensitivity:"base"}));
   const all=prodShowAll||!meta.focus.length;
   if(all&&!prodFly)others.forEach(([n,o])=>out.push({name:n,t:o.t,s:o.s,ord:out.length}));
   if(prodFly){
     out.length=0;
-    const want=mode==="ASE"?FLY_THI.ASE:(ctx.team?((FLY_THI.MPE.find(x=>x[0]===ctx.team)||[0,[]])[1]):FLY_THI.MPE.flatMap(x=>x[1]));
+    const mpeLists=(mode==="MPE"&&ctx.terr&&FLY_THI_TERR[ctx.terr])||FLY_THI.MPE;
+    const want=mode==="ASE"?FLY_THI.ASE:(ctx.team?((mpeLists.find(x=>x[0]===ctx.team)||[0,[]])[1]):mpeLists.flatMap(x=>x[1]));
     const byKey=new Map(); [...focusNames,...m.keys()].forEach(n=>{const k=flyKey(n); if(!byKey.has(k))byKey.set(k,n)});
     want.forEach(w=>{const n=byKey.get(flyKey(w))||w, o=m.get(n)||{t:0,s:0}; out.push({name:n,t:o.t,s:o.s,ord:out.length})});
   }
@@ -627,9 +640,9 @@ function renderProducts(){
   const ctx=prodCtx||{}, isASE=mode==="ASE";
   const title=isASE?(ctx.area?`${esc(ctx.area)} • all territories`:"All areas • all territories"):
     `${ctx.terr?esc(ctx.terr):(ctx.area?esc(ctx.area)+" • all territories":"All territories")} • ${ctx.team?esc(ctx.team):"all teams"}`;
-  const note=`${title}${selMonth?" • "+mLabel(selMonth):""}${prodFly?" • Fly Thi products":""} • all strengths combined • Ach % = (Sold + Transit) ÷ Target${productLive===false?" • offline preview data":""}`;
+  const note=`${title}${selMonth?" • "+mLabel(selMonth):""}${prodFly?" • Fly Thai products":""} • all strengths combined • Ach % = (Sold + Transit) ÷ Target${productLive===false?" • offline preview data":""}`;
   const headWith=extra=>`<div class="cardhead"><div><div class="cardtitle">Product-wise Achievement</div><div class="cardnote">${note}</div></div><span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end">${extra}<span class="badge">${mode}</span></span></div>`;
-  const flyBtn=`<button class="btn ghost sm${prodFly?" on":""}" onclick="toggleFlyThi()">Fly Thi</button>`;
+  const flyBtn=`<button class="btn ghost sm${prodFly?" on":""}" onclick="toggleFlyThi()">Fly Thai</button>`;
   const backBtn=prodShowAll?`<button class="btn ghost sm on" onclick="toggleAllProducts()">Focus products only</button>`:"";
   const msg=(t,withBtns)=>{host.innerHTML=`<section class="section card">${headWith(withBtns?backBtn+flyBtn:"")}<div class="empty">${t}</div></section>`};
   if(productStatus==="loading")return msg("Loading product data…");
@@ -792,6 +805,11 @@ function makeInsights(rows,cols,c){
   ];
   box.innerHTML=items.map(x=>`<div class="insight"><div class="tag">${x[0]}</div><strong>${x[1]}</strong><span>${x[2]}</span></div>`).join("");
 }
+function teamList(rows,col){
+  const order=["Origina","Centina","Optima","Fortuna"], seen=[];
+  rows.forEach(r=>{const t=String(r[col]??"").trim(); if(t&&!seen.includes(t))seen.push(t)});
+  return seen.sort((a,b)=>{const x=order.indexOf(a),y=order.indexOf(b); return (x<0?99:x)-(y<0?99:y)});
+}
 function makeTable(rows,cols,c){
   // In MPE view, selecting a territory shows the individual MPEs inside it.
   const selectedTerritory = selectVal("fTerritory");
@@ -799,14 +817,14 @@ function makeTable(rows,cols,c){
   const g=group(rows,groupCol);
   const teamCol = mode==="MPE" ? findCol(cols,["team"]) : null;
   const arr=Object.entries(g).map(([k,v])=>({
-    name:k, team:teamCol ? String(v[0]?.[teamCol] ?? "") : "",
+    name:k, teams:teamCol ? teamList(v,teamCol) : [],
     target:sum(v,c.target), sold:sum(v,c.sold), total:sum(v,c.total),
     ach:c.ach?avg(v,c.ach):sum(v,c.total)/Math.max(sum(v,c.target),1)*100,
     var:sum(v,c.variance), ret:c.retPct?avg(v,c.retPct):0
   })).sort((a,b)=>b.ach-a.ach);
   const firstHead = mode==="MPE" ? "MPE" : (groupCol||"Employee");
   document.getElementById("detailTable").innerHTML=`<thead><tr><th>${firstHead}</th>${mode==="MPE"?"<th>Team</th>":""}<th>Target</th><th>Sold</th><th>Total</th><th>Ach %</th><th>Variance</th><th>Return %</th></tr></thead><tbody>${
-    arr.map(x=>`<tr><td><b>${x.name}</b></td>${mode==="MPE"?`<td><span class="badge">${x.team}</span></td>`:""}<td>${money(x.target)}</td><td>${money(x.sold)}</td><td>${money(x.total)}</td><td><span class="badge">${pct(x.ach)}</span></td><td>${money(x.var)}</td><td>${pct(x.ret)}</td></tr>`).join("")
+    arr.map(x=>`<tr><td><b>${x.name}</b></td>${mode==="MPE"?`<td><span style="display:flex;flex-wrap:wrap;gap:4px">${x.teams.map(t=>`<span class="badge">${esc(t)}</span>`).join("")}</span></td>`:""}<td>${money(x.target)}</td><td>${money(x.sold)}</td><td>${money(x.total)}</td><td><span class="badge">${pct(x.ach)}</span></td><td>${money(x.var)}</td><td>${pct(x.ret)}</td></tr>`).join("")
   }</tbody>`;
 }
 
