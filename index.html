@@ -319,7 +319,7 @@ function populateFilters(rows, cols){
   for(const [id,col] of Object.entries(map)){
     const el=document.getElementById(id), old=el.value;
     const vals=col?unique(rows,col):[];
-    el.innerHTML='<option value="">All</option>'+vals.map(v=>`<option value="${String(v).replaceAll('"','&quot;')}">${String(v)}</option>`).join("");
+    el.innerHTML='<option value="">All</option>'+vals.map(v=>`<option value="${String(v).replaceAll('"','&quot;')}">${id==="fEmployee"?fmtName(v):String(v)}</option>`).join("");
     if(vals.includes(old)) el.value=old;
   }
 }
@@ -686,6 +686,13 @@ function renderProducts(){
 }
 
 /* Name card: who/what the current filters point to */
+/* "Fakir, Mr. Md. Emon" -> "Mr. Md. Emon Fakir" (Name card only) */
+function fmtName(v){
+  const t=String(v==null?"":v).trim(), i=t.indexOf(",");
+  if(i<=0||t.indexOf(",",i+1)!==-1)return t;
+  const last=t.slice(0,i).trim(), rest=t.slice(i+1).trim();
+  return last&&rest?rest+" "+last:t;
+}
 function viewName(fr,cols){
   const ac=findCol(cols,["area"]), tc=findCol(cols,["territorycode","territory"]);
   const ec=mode==="MPE"?findCol(cols,["territoryemployee","employee"]):findCol(cols,["aseemployee","employee"]);
@@ -694,13 +701,13 @@ function viewName(fr,cols){
   const uniq=c=>c?[...new Set(fr.map(r=>r[c]).filter(v=>v!==null&&v!==undefined&&String(v).trim()!==""))].map(String).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true})):[];
   if(emp){
     const r=fr[0]||{};
-    return {name:emp,hint:mode==="ASE"?"ASE"+(ac&&r[ac]?" • Area "+r[ac]:""):"MPE"+(tc&&r[tc]?" • "+r[tc]:"")+(teamC&&r[teamC]?" • "+r[teamC]:"")};
+    return {name:fmtName(emp),hint:mode==="ASE"?"ASE"+(ac&&r[ac]?" • Area "+r[ac]:""):"MPE"+(tc&&r[tc]?" • "+r[tc]:"")+(teamC&&r[teamC]?" • "+r[teamC]:"")};
   }
   if(mode==="ASE"){
-    if(area){const n=uniq(ec);return {name:n.length?n.join(" + "):area,hint:"ASE • Area "+area}}
+    if(area){const n=uniq(ec);return {name:n.length?n.map(fmtName).join(" + "):area,hint:"ASE • Area "+area}}
     return {name:"K1",hint:"All areas • ASE view"};
   }
-  if(terr&&team){const n=uniq(ec);return {name:n.length?n.join(" + "):terr,hint:"MPE • "+terr+" • "+team}}
+  if(terr&&team){const n=uniq(ec);return {name:n.length?n.map(fmtName).join(" + "):terr,hint:"MPE • "+terr+" • "+team}}
   if(terr)return {name:terr,hint:"Territory • all teams"};
   if(area){const t=uniq(tc);return {name:t.length?t.join(" + "):area,hint:"Area "+area+" • "+t.length+(t.length===1?" territory":" territories")}}
   if(team)return {name:"K1 • "+team,hint:"All areas • "+team+" team"};
@@ -815,10 +822,10 @@ function makeInsights(rows,cols,c){
   const top=entries[0], low=entries[entries.length-1];
   const bestReturn=[...entries].sort((a,b)=>b.ret-a.ret)[0];
   const items=[
-    ["Top achievement",top?`${top.k} leads at ${pct(top.ach)}.`:"Not enough data.","Highest reported achievement in the current filter."],
-    ["Biggest opportunity",low?`${low.k} is at ${pct(low.ach)}.`:"Not enough data.","This is the lowest achievement group in the current view."],
+    ["Top achievement",top?`${fmtName(top.k)} leads at ${pct(top.ach)}.`:"Not enough data.","Highest reported achievement in the current filter."],
+    ["Biggest opportunity",low?`${fmtName(low.k)} is at ${pct(low.ach)}.`:"Not enough data.","This is the lowest achievement group in the current view."],
     ["Top Rx Share",...rxTopItem()],
-    ["Return watch",bestReturn&&bestReturn.ret?`${bestReturn.k}: ${pct(bestReturn.ret)} return rate.`:"Return-rate data is limited.","Higher return percentage deserves review."],
+    ["Return watch",bestReturn&&bestReturn.ret?`${fmtName(bestReturn.k)}: ${pct(bestReturn.ret)} return rate.`:"Return-rate data is limited.","Higher return percentage deserves review."],
   ];
   box.innerHTML=items.map(x=>`<div class="insight"><div class="tag">${x[0]}</div><strong>${x[1]}</strong><span>${x[2]}</span></div>`).join("");
 }
@@ -841,7 +848,7 @@ function makeTable(rows,cols,c){
   })).sort((a,b)=>b.ach-a.ach);
   const firstHead = mode==="MPE" ? "MPE" : (groupCol||"Employee");
   document.getElementById("detailTable").innerHTML=`<thead><tr><th>${firstHead}</th>${mode==="MPE"?"<th>Team</th>":""}<th>Target</th><th>Sold</th><th>Total</th><th>Ach %</th><th>Variance</th><th>Return %</th></tr></thead><tbody>${
-    arr.map(x=>`<tr><td><b>${x.name}</b></td>${mode==="MPE"?`<td><span style="display:flex;flex-wrap:wrap;gap:4px">${x.teams.map(t=>`<span class="badge">${esc(t)}</span>`).join("")}</span></td>`:""}<td>${money(x.target)}</td><td>${money(x.sold)}</td><td>${money(x.total)}</td><td><span class="badge">${pct(x.ach)}</span></td><td>${money(x.var)}</td><td>${pct(x.ret)}</td></tr>`).join("")
+    arr.map(x=>`<tr><td><b>${fmtName(x.name)}</b></td>${mode==="MPE"?`<td><span style="display:flex;flex-wrap:wrap;gap:4px">${x.teams.map(t=>`<span class="badge">${esc(t)}</span>`).join("")}</span></td>`:""}<td>${money(x.target)}</td><td>${money(x.sold)}</td><td>${money(x.total)}</td><td><span class="badge">${pct(x.ach)}</span></td><td>${money(x.var)}</td><td>${pct(x.ret)}</td></tr>`).join("")
   }</tbody>`;
 }
 
